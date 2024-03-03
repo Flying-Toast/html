@@ -178,7 +178,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 		goto err_freechildren;
 	s += strlen("</");
 	eatsp(&s);
-	if (strncasecmp(s, tagname, 2))
+	if (strncasecmp(s, tagname, strlen(tagname)))
 		goto err_freechildren;
 	s += strlen(tagname);
 	if (*s++ != '>')

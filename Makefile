@@ -1,4 +1,4 @@
-CC=cc
+CC=clang
 CFLAGS=-Wall -g -O0
 RM=rm -f
 OBJECTS=main.o
