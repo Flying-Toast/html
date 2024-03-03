@@ -25,8 +25,6 @@ enum node_kind {
 	NODE_WHITESPACE,
 };
 
-struct nodelist;
-
 struct node {
 	enum node_kind kind;
 	union {
@@ -116,24 +114,45 @@ parse_text(char *s, char **rest, struct node *out) {
 	char *start = s;
 	while (*s && *s != '<')
 		s++;
-	size_t len = s - start;
-	if (len == 0)
+	size_t rawlen = s - start;
+	if (rawlen == 0)
 		return -1;
 
 	int isallspace = 1;
-	for (size_t i = 0; i < len; i++) {
-		if (!isspace(start[i])) {
+	// # of chars shorter the content will be,
+	// due to collapsed spaces:
+	int ndupspaces = 0;
+
+	int spacerun = 0;
+	for (size_t i = 0; i < rawlen; i++) {
+		if (isspace(start[i])) {
+			spacerun++;
+		}
+
+		if (!isspace(start[i]) || i >= rawlen) {
 			isallspace = 0;
-			break;
+			if (spacerun)
+				ndupspaces += spacerun - 1;
+			spacerun = 0;
 		}
 	}
 	
 	if (isallspace) {
 		out->kind = NODE_WHITESPACE;
 	} else {
+		size_t len = rawlen - ndupspaces;
 		char *content = malloc(len + 1);
 		content[len] = '\0';
-		memcpy(content, start, len);
+		size_t cidx = 0;
+		for (size_t i = 0; i < rawlen; i++) {
+			if (isspace(start[i])) {
+				content[cidx++] = ' ';
+				while (isspace(start[i + 1]))
+					i++;
+			} else {
+				content[cidx++] = start[i];
+			}
+		}
 		out->kind = NODE_TEXT;
 		out->text.content = content;
 	}
@@ -250,7 +269,7 @@ main(int argc, char **argv) {
 	read(f, buf, st.st_size);
 	struct node *htmlnode = new_node();
 	char *rest;
-	if (parse_elt(buf, &rest, htmlnode))
+	if (parse_node(buf, &rest, htmlnode))
 		goto err;
 	
 	print_node(htmlnode, 0);
