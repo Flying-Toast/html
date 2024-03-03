@@ -25,11 +25,23 @@ enum node_kind {
 	NODE_WHITESPACE,
 };
 
+struct attr {
+	char *name;
+	char *val;
+};
+
+struct attrlist {
+	struct attr attr;
+	struct attrlist *next;
+};
+
+
 struct node {
 	enum node_kind kind;
 	union {
 		struct {
 			char *tagname;
+			struct attrlist *attrs;
 			struct nodelist *children;
 		} elt;
 
@@ -79,6 +91,21 @@ new_node() {
 }
 
 static void
+put_attrlist(struct attrlist *l) {
+	if (!l)
+		return;
+	struct attrlist *next = l->next;
+	while (l != NULL) {
+		free(l->attr.name);
+		free(l->attr.val);
+		free(l);
+		l = next;
+		if (l)
+			next = l->next;
+	}
+}
+
+static void
 put_node_inner(struct node *n) {
 	if (!n)
 		return;
@@ -86,6 +113,7 @@ put_node_inner(struct node *n) {
 	if (n->kind == NODE_ELT) {
 		free(n->elt.tagname);
 		put_nodelist(n->elt.children);
+		put_attrlist(n->elt.attrs);
 	} else if (n->kind == NODE_TEXT) {
 		free(n->text.content);
 	}
@@ -110,13 +138,15 @@ static int
 parse_text(char *s, char **rest, struct node *out) {
 	*rest = s;
 	if (*s == '\0')
-		return -1;
+		//return -1;
+		__builtin_trap();
 	char *start = s;
 	while (*s && *s != '<')
 		s++;
 	size_t rawlen = s - start;
 	if (rawlen == 0)
-		return -1;
+		//return -1;
+		__builtin_trap();
 
 	int isallspace = 1;
 	// # of chars shorter the content will be,
@@ -165,20 +195,57 @@ static int
 parse_elt(char *s, char **rest, struct node *out) {
 	*rest = s;
 	if (!*s || *s++ != '<')
-		return -1;
+		//return -1;
+		__builtin_trap();
 	eatsp(&s);
 	char *tagname = parse_alnum(s, rest);
 	s = *rest;
 	if (!tagname)
-		return -1;
+		//return -1;
+		__builtin_trap();
 	eatsp(&s); // eat post-tagname whitespace
 
-	// TODO: actually parse attrs.
-	// for now we just skip them.
-	while (*s && *s != '>')
-		s++;
-	if (!*s++)
-		goto err_freetag;
+	struct attrlist **nextatt = &out->elt.attrs;
+	while (*s && *s != '>') {
+		struct attrlist *new = malloc(sizeof(struct attrlist));
+		new->next = NULL;
+		new->attr.name = NULL;
+		new->attr.val = NULL;
+		*nextatt = new;
+		nextatt = &new->next;
+		if ((new->attr.name = parse_alnum(s, rest)) == NULL)
+			// goto err_freeattrs;
+			__builtin_trap();
+		s = *rest;
+		eatsp(&s);
+		if (!*s || *s++ != '=')
+			// goto err_freeattrs;
+			__builtin_trap();
+		eatsp(&s);
+		if (!*s || *s++ != '"')
+			// goto err_freeattrs;
+			__builtin_trap();
+
+		// TODO: escape-able '"' in attr value
+		char *valstart = s;
+		while (*s && *s != '"')
+			s++;
+		size_t vlen = s - valstart;
+		if (vlen != 0) {
+			char *buf = malloc(vlen + 1);
+			buf[vlen] = '\0';
+			memcpy(buf, valstart, vlen);
+			new->attr.val = buf;
+		}
+
+		if (!*s || *s++ != '"')
+			// goto err_freeattrs;
+			__builtin_trap();
+		eatsp(&s);
+	}
+	if (!*s || *s++ != '>')
+		//goto err_freetag;
+		__builtin_trap();
 
 	out->kind = NODE_ELT;
 	out->elt.tagname = tagname;
@@ -188,25 +255,31 @@ parse_elt(char *s, char **rest, struct node *out) {
 		struct nodelist *new = malloc(sizeof(struct nodelist));
 		new->next = NULL;
 		if (parse_node(s, rest, &new->node))
-			goto err_freechildren;
+			//goto err_freechildren;
+			__builtin_trap();
 		s = *rest;
 		*next = new;
 		next = &new->next;
 	}
 	if (strncmp(s, "</", 2))
-		goto err_freechildren;
+		//goto err_freechildren;
+		__builtin_trap();
 	s += strlen("</");
 	eatsp(&s);
 	if (strncasecmp(s, tagname, strlen(tagname)))
-		goto err_freechildren;
+		//goto err_freechildren;
+		__builtin_trap();
 	s += strlen(tagname);
 	if (*s++ != '>')
-		goto err_freechildren;
+		//goto err_freechildren;
+		__builtin_trap();
 	*rest = s;
 	return 0;
 
 err_freechildren:
 	put_nodelist(out->elt.children);
+err_freeattrs:
+	put_attrlist(out->elt.attrs);
 err_freetag:
 	free(tagname);
 	return -1;
@@ -216,7 +289,8 @@ static int
 parse_node(char *s, char **rest, struct node *out) {
 	*rest = s;
 	if (!*s)
-		return -1;
+		//return -1;
+		__builtin_trap();
 
 	if (*s == '<')
 		return parse_elt(s, rest, out);
@@ -270,7 +344,8 @@ main(int argc, char **argv) {
 	struct node *htmlnode = new_node();
 	char *rest;
 	if (parse_node(buf, &rest, htmlnode))
-		goto err;
+		//goto err;
+		__builtin_trap();
 	
 	print_node(htmlnode, 0);
 
