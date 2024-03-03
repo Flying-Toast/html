@@ -220,7 +220,7 @@ print_node(struct node *n, int nindent) {
 	}
 
 	if (n->kind == NODE_TEXT) {
-		printf("%s#Text '%s'\n", indentstr, n->text.content);
+		printf("%s#Text \"%s\"\n", indentstr, n->text.content);
 	} else if (n->kind == NODE_ELT) {
 		printf("%s#%s\n", indentstr, n->elt.tagname);
 		struct nodelist *i;
@@ -228,7 +228,7 @@ print_node(struct node *n, int nindent) {
 			print_node(&i->node, nindent + 1);
 		}
 	} else if (n->kind == NODE_WHITESPACE) {
-		printf("%s#Whitespace\n", indentstr);
+		//printf("%s#Whitespace\n", indentstr);
 	}
 
 	if (nindent)

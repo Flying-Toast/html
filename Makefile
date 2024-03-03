@@ -6,7 +6,7 @@ OBJECTS=main.o
 .PHONY: run
 run: html
 	@echo "======================"
-	./html test.html
+	@./html test.html
 
 html: $(OBJECTS)
 	$(CC) $(CFLAGS) -o html $(OBJECTS)
