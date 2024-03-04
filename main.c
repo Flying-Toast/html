@@ -38,6 +38,7 @@
 enum node_kind {
 	NODE_ELT,
 	NODE_TEXT,
+	NODE_COMMENT,
 	NODE_WHITESPACE,
 };
 
@@ -64,6 +65,10 @@ struct node {
 		struct {
 			char *content;
 		} text;
+
+		struct {
+			char *content;
+		} comment;
 	};
 };
 
@@ -155,6 +160,8 @@ put_node_inner(struct node *n) {
 		put_attrlist(n->elt.attrs);
 	} else if (n->kind == NODE_TEXT) {
 		free(n->text.content);
+	} else if (n->kind == NODE_COMMENT) {
+		free(n->comment.content);
 	}
 }
 
@@ -230,18 +237,28 @@ parse_text(char *s, char **rest, struct node *out) {
 	return 0;
 }
 
+/* parses a NODE_ELT or NODE_COMMENT */
 static int
 parse_elt(char *s, char **rest, struct node *out) {
-	// skip comments
+	// handle comment
 	const size_t cstartlen = strlen("<!--");
 	const size_t cendlen = strlen("-->");
 	if (!strncmp(s, "<!--", cstartlen)) {
 		s += cstartlen;
+		char *start = s;
 		while (*s && strncmp(s, "-->", cendlen))
 			s++;
+		size_t clen = s - start;
+		char *content = malloc(clen + 1);
+		content[clen] = '\0';
+		memcpy(content, start, clen);
 		if (*s)
 			s += cendlen;
 		eatsp(&s);
+		*rest = s;
+		out->kind = NODE_COMMENT;
+		out->comment.content = content;
+		return 0;
 	}
 
 	*rest = s;
@@ -402,6 +419,8 @@ print_node(struct node *n, int nindent) {
 		}
 	} else if (n->kind == NODE_WHITESPACE) {
 		//printf("%s#Whitespace\n", indentstr);
+	} else if (n->kind == NODE_COMMENT) {
+		printf("%s#Comment \"%s\"\n", indentstr, n->comment.content);
 	}
 
 	if (nindent)
