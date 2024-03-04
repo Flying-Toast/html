@@ -296,6 +296,13 @@ parse_elt(char *s, char **rest, struct node *out) {
 	out->elt.tagname = tagname;
 	out->elt.children = NULL;
 	if (!selfclose) {
+		// NOTE: we don't actually store the contents
+		// of <script>s
+		if (!strcasecmp(tagname, "script")) {
+			while (*s && strncasecmp(s, "</", 2))
+				s++;
+		}
+
 		struct nodelist **next = &out->elt.children;
 		while (*s && strncmp("</", s, 2)) {
 			struct nodelist *new = malloc(sizeof(struct nodelist));
