@@ -115,14 +115,9 @@ parse_strwhile(char *s, char **rest, int (*pred)(int)) {
 	return ret;
 }
 
-static char *
-parse_alnum(char *s, char **rest) {
-	return parse_strwhile(s, rest, isalnum);
-}
-
 static int
 _attrname_pred(int ch) {
-	return ch == '-' || isalnum(ch);
+	return ch == '-' || ch == '_' || isalnum(ch);
 }
 
 static char *
@@ -268,7 +263,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 		//return -1;
 		__builtin_trap();
 	eatsp(&s);
-	char *tagname = parse_alnum(s, rest);
+	char *tagname = parse_attrname(s, rest);
 	s = *rest;
 	if (!tagname)
 		//return -1;
@@ -304,7 +299,6 @@ parse_elt(char *s, char **rest, struct node *out) {
 		if (*s == '"' || *s == '\'') { // attr value is quoted
 			char quot = *s++;
 
-			// TODO: escape-able '"' in attr value
 			char *valstart = s;
 			while (*s && *s != quot)
 				s++;
