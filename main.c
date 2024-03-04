@@ -447,14 +447,25 @@ main(int argc, char **argv) {
 	buf[buflen - 1] = '\0';
 	read(f, buf, st.st_size);
 	char *nodestart = buf;
-	// TODO: better handling of doctype and leading comments
-	while (*nodestart && strncasecmp(nodestart, "<html", 5))
-		nodestart++;
+	eatsp(&nodestart);
+	// skip doctype
+	if (!strncasecmp(nodestart, "<!doctype", 9)) {
+		while (*nodestart && *nodestart++ != '>')
+			;
+	}
+
 	struct node *htmlnode = new_node();
 	char *rest;
-	if (parse_node(nodestart, &rest, htmlnode))
-		//goto err;
-		__builtin_trap();
+	for (;;) {
+		if (parse_node(nodestart, &rest, htmlnode))
+			//goto err;
+			__builtin_trap();
+		nodestart = rest;
+		if (htmlnode->kind == NODE_COMMENT || htmlnode->kind == NODE_WHITESPACE)
+			put_node_inner(htmlnode);
+		else
+			break;
+	}
 	eatsp(&rest);
 	if (*rest != '\0')
 		fprintf(
