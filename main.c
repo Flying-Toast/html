@@ -261,13 +261,14 @@ parse_elt(char *s, char **rest, struct node *out) {
 			// goto err_freeattrs;
 			__builtin_trap();
 		eatsp(&s);
-		if (!*s || *s++ != '"')
+		if (!*s || (*s != '"' && *s != '\''))
 			// goto err_freeattrs;
 			__builtin_trap();
+		char quot = *s++;
 
 		// TODO: escape-able '"' in attr value
 		char *valstart = s;
-		while (*s && *s != '"')
+		while (*s && *s != quot)
 			s++;
 		size_t vlen = s - valstart;
 		if (vlen != 0) {
@@ -277,7 +278,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 			new->attr.val = buf;
 		}
 
-		if (!*s || *s++ != '"')
+		if (!*s || *s++ != quot)
 			// goto err_freeattrs;
 			__builtin_trap();
 		eatsp(&s);
