@@ -245,8 +245,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 	eatsp(&s); // eat post-tagname whitespace
 
 	struct attrlist **nextatt = &out->elt.attrs;
-	// TODO: allow selfclosing tags to end with "/>"
-	while (*s && *s != '>') {
+	while (*s && *s != '>' && *s != '/') {
 		struct attrlist *new = malloc(sizeof(struct attrlist));
 		new->next = NULL;
 		new->attr.name = NULL;
@@ -283,6 +282,11 @@ parse_elt(char *s, char **rest, struct node *out) {
 			__builtin_trap();
 		eatsp(&s);
 	}
+	int selfclose = is_selfclose(tagname);
+	if (*s && *s == '/') {
+		s++;
+		selfclose = 1;
+	}
 	if (!*s || *s++ != '>')
 		//goto err_freetag;
 		__builtin_trap();
@@ -290,7 +294,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 	out->kind = NODE_ELT;
 	out->elt.tagname = tagname;
 	out->elt.children = NULL;
-	if (!is_selfclose(tagname)) {
+	if (!selfclose) {
 		struct nodelist **next = &out->elt.children;
 		while (*s && strncmp("</", s, 2)) {
 			struct nodelist *new = malloc(sizeof(struct nodelist));
