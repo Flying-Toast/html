@@ -269,7 +269,12 @@ parse_elt(char *s, char **rest, struct node *out) {
 			__builtin_trap();
 		s = *rest;
 		eatsp(&s);
-		if (!*s || *s++ != '=')
+		if (*s && *s != '=') {
+			// boolean attr, no `="value"`
+			new->attr.val = calloc(1, 1);
+			continue;
+		}
+		if (!*s++)
 			// goto err_freeattrs;
 			__builtin_trap();
 		eatsp(&s);
