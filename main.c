@@ -347,9 +347,13 @@ parse_elt(char *s, char **rest, struct node *out) {
 	out->elt.children = NULL;
 	if (!selfclose) {
 		// NOTE: we don't actually store the contents
-		// of <script>s
+		// of <script>s or <style>s
 		if (!strcasecmp(tagname, "script")) {
 			while (*s && strncasecmp(s, "</script>", 8))
+				s++;
+		}
+		if (!strcasecmp(tagname, "style")) {
+			while (*s && strncasecmp(s, "</style>", 8))
 				s++;
 		}
 
@@ -373,6 +377,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 			//goto err_freechildren;
 			__builtin_trap();
 		s += strlen(tagname);
+		eatsp(&s);
 		if (*s++ != '>')
 			//goto err_freechildren;
 			__builtin_trap();
