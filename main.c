@@ -232,6 +232,18 @@ parse_text(char *s, char **rest, struct node *out) {
 
 static int
 parse_elt(char *s, char **rest, struct node *out) {
+	// skip comments
+	const size_t cstartlen = strlen("<!--");
+	const size_t cendlen = strlen("-->");
+	if (!strncmp(s, "<!--", cstartlen)) {
+		s += cstartlen;
+		while (*s && strncmp(s, "-->", cendlen))
+			s++;
+		if (*s)
+			s += cendlen;
+		eatsp(&s);
+	}
+
 	*rest = s;
 	if (!*s || *s++ != '<')
 		//return -1;
