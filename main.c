@@ -453,7 +453,9 @@ main(int argc, char **argv) {
 	buf[buflen - 1] = '\0';
 	read(f, buf, st.st_size);
 	char *nodestart = buf;
-	eatsp(&nodestart);
+	// TODO: better handling of doctype and leading comments
+	while (*nodestart && strncasecmp(nodestart, "<html", 5))
+		nodestart++;
 	struct node *htmlnode = new_node();
 	char *rest;
 	if (parse_node(nodestart, &rest, htmlnode))
