@@ -345,7 +345,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 		// NOTE: we don't actually store the contents
 		// of <script>s
 		if (!strcasecmp(tagname, "script")) {
-			while (*s && strncasecmp(s, "</", 2))
+			while (*s && strncasecmp(s, "</script>", 8))
 				s++;
 		}
 
