@@ -281,6 +281,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 	eatsp(&s); // eat post-tagname whitespace
 
 	struct attrlist **nextatt = &out->elt.attrs;
+	*nextatt = NULL;
 	while (*s && *s != '>' && *s != '/') {
 		struct attrlist *new = malloc(sizeof(struct attrlist));
 		new->next = NULL;
