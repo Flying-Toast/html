@@ -75,7 +75,7 @@ struct node {
 struct nodelist {
 	struct node node;
 	struct nodelist *next;
-}; 
+};
 
 static int parse_node(char *s, char **rest, struct node *out);
 static void put_nodelist(struct nodelist *l);
@@ -212,7 +212,7 @@ parse_text(char *s, char **rest, struct node *out) {
 			spacerun = 0;
 		}
 	}
-	
+
 	if (isallspace) {
 		out->kind = NODE_WHITESPACE;
 	} else {
@@ -454,7 +454,7 @@ main(int argc, char **argv) {
 			"OOPS: non-empty rest:\n%s\n==========\n",
 			rest
 		);
-	
+
 	print_node(htmlnode, 0);
 
 	goto ok;
