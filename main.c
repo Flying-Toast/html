@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define _STRINGIFY(X) # X
+#define _STRINGIFY(X) #X
 #define TRY(CALL) \
 	({ \
 		errno = 0; \
@@ -18,6 +18,22 @@
 		} \
 		__ret; \
 	})
+
+#define ENUMERATE_SELFCLOSING_TAGS(X) \
+	X(area) \
+	X(base) \
+	X(br) \
+	X(col) \
+	X(embed) \
+	X(hr) \
+	X(img) \
+	X(input) \
+	X(link) \
+	X(meta) \
+	X(param) \
+	X(source) \
+	X(track) \
+	X(wbr)
 
 enum node_kind {
 	NODE_ELT,
@@ -67,13 +83,21 @@ eatsp(char **s) {
 	*s = cp;
 }
 
+static int
+is_selfclose(char *tagname) {
+#define X(ARG) if (!strcmp(#ARG, tagname)) return 1;
+	ENUMERATE_SELFCLOSING_TAGS(X)
+#undef X
+	return 0;
+}
+
 /* caller must free returned string.
  * may return null.
  */
 static char *
-parse_alnum(char *s, char **rest) {
+parse_strwhile(char *s, char **rest, int (*pred)(int)) {
 	char *start = s;
-	while (*s && isalnum(*s))
+	while (*s && (*pred)(*s))
 		s++;
 	size_t len = s - start;
 	if (len == 0)
@@ -83,6 +107,21 @@ parse_alnum(char *s, char **rest) {
 	memcpy(ret, start, len);
 	*rest = s;
 	return ret;
+}
+
+static char *
+parse_alnum(char *s, char **rest) {
+	return parse_strwhile(s, rest, isalnum);
+}
+
+static int
+_attrname_pred(int ch) {
+	return ch == '-' || isalnum(ch);
+}
+
+static char *
+parse_attrname(char *s, char **rest) {
+	return parse_strwhile(s, rest, _attrname_pred);
 }
 
 static struct node *
@@ -206,6 +245,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 	eatsp(&s); // eat post-tagname whitespace
 
 	struct attrlist **nextatt = &out->elt.attrs;
+	// TODO: allow selfclosing tags to end with "/>"
 	while (*s && *s != '>') {
 		struct attrlist *new = malloc(sizeof(struct attrlist));
 		new->next = NULL;
@@ -213,7 +253,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 		new->attr.val = NULL;
 		*nextatt = new;
 		nextatt = &new->next;
-		if ((new->attr.name = parse_alnum(s, rest)) == NULL)
+		if ((new->attr.name = parse_attrname(s, rest)) == NULL)
 			// goto err_freeattrs;
 			__builtin_trap();
 		s = *rest;
@@ -250,29 +290,31 @@ parse_elt(char *s, char **rest, struct node *out) {
 	out->kind = NODE_ELT;
 	out->elt.tagname = tagname;
 	out->elt.children = NULL;
-	struct nodelist **next = &out->elt.children;
-	while (*s && strncmp("</", s, 2)) {
-		struct nodelist *new = malloc(sizeof(struct nodelist));
-		new->next = NULL;
-		if (parse_node(s, rest, &new->node))
+	if (!is_selfclose(tagname)) {
+		struct nodelist **next = &out->elt.children;
+		while (*s && strncmp("</", s, 2)) {
+			struct nodelist *new = malloc(sizeof(struct nodelist));
+			new->next = NULL;
+			if (parse_node(s, rest, &new->node))
+				//goto err_freechildren;
+				__builtin_trap();
+			s = *rest;
+			*next = new;
+			next = &new->next;
+		}
+		if (strncmp(s, "</", 2))
 			//goto err_freechildren;
 			__builtin_trap();
-		s = *rest;
-		*next = new;
-		next = &new->next;
+		s += strlen("</");
+		eatsp(&s);
+		if (strncasecmp(s, tagname, strlen(tagname)))
+			//goto err_freechildren;
+			__builtin_trap();
+		s += strlen(tagname);
+		if (*s++ != '>')
+			//goto err_freechildren;
+			__builtin_trap();
 	}
-	if (strncmp(s, "</", 2))
-		//goto err_freechildren;
-		__builtin_trap();
-	s += strlen("</");
-	eatsp(&s);
-	if (strncasecmp(s, tagname, strlen(tagname)))
-		//goto err_freechildren;
-		__builtin_trap();
-	s += strlen(tagname);
-	if (*s++ != '>')
-		//goto err_freechildren;
-		__builtin_trap();
 	*rest = s;
 	return 0;
 
