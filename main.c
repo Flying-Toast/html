@@ -7,13 +7,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define _STRINGIFY(X) #X
+#define _STRINGIFY1(X) #X
+#define _STRINGIFY2(X) _STRINGIFY1(X)
 #define TRY(CALL) \
 	({ \
 		errno = 0; \
 		typeof(CALL) __ret = CALL; \
 		if (errno) { \
-			perror("TRY(" __FILE__ ":" _STRINGIFY(__LINE__) ")"); \
+			perror("TRY(" __FILE__ ":" _STRINGIFY2(__LINE__) ")"); \
 			exit(1); \
 		} \
 		__ret; \
@@ -203,10 +204,11 @@ parse_text(char *s, char **rest, struct node *out) {
 	for (size_t i = 0; i < rawlen; i++) {
 		if (isspace(start[i])) {
 			spacerun++;
+		} else {
+			isallspace = 0;
 		}
 
-		if (!isspace(start[i]) || i >= rawlen) {
-			isallspace = 0;
+		if (!isspace(start[i]) || i == rawlen - 1) {
 			if (spacerun)
 				ndupspaces += spacerun - 1;
 			spacerun = 0;
@@ -241,19 +243,19 @@ parse_text(char *s, char **rest, struct node *out) {
 static int
 parse_elt(char *s, char **rest, struct node *out) {
 	// handle comment
-	const size_t cstartlen = strlen("<!--");
-	const size_t cendlen = strlen("-->");
-	if (!strncmp(s, "<!--", cstartlen)) {
-		s += cstartlen;
+	const char *cstart = "<!--";
+	const char *cend = "-->";
+	if (!strncmp(s, cstart, strlen(cstart))) {
+		s += strlen(cstart);
 		char *start = s;
-		while (*s && strncmp(s, "-->", cendlen))
+		while (*s && strncmp(s, cend, strlen(cend)))
 			s++;
 		size_t clen = s - start;
 		char *content = malloc(clen + 1);
 		content[clen] = '\0';
 		memcpy(content, start, clen);
 		if (*s)
-			s += cendlen;
+			s += strlen(cend);
 		eatsp(&s);
 		*rest = s;
 		out->kind = NODE_COMMENT;
@@ -305,12 +307,10 @@ parse_elt(char *s, char **rest, struct node *out) {
 		while (*s && *s != quot)
 			s++;
 		size_t vlen = s - valstart;
-		if (vlen != 0) {
-			char *buf = malloc(vlen + 1);
-			buf[vlen] = '\0';
-			memcpy(buf, valstart, vlen);
-			new->attr.val = buf;
-		}
+		char *buf = malloc(vlen + 1);
+		buf[vlen] = '\0';
+		memcpy(buf, valstart, vlen);
+		new->attr.val = buf;
 
 		if (!*s || *s++ != quot)
 			// goto err_freeattrs;
@@ -403,7 +403,7 @@ print_node(struct node *n, int nindent) {
 	if (n->kind == NODE_TEXT) {
 		printf("%s#Text \"%s\"\n", indentstr, n->text.content);
 	} else if (n->kind == NODE_ELT) {
-		printf("%s#%s\n", indentstr, n->elt.tagname);
+		printf("%s#Element %s\n", indentstr, n->elt.tagname);
 		struct attrlist *ai;
 		for (ai = n->elt.attrs; ai != NULL; ai = ai->next) {
 			printf(
