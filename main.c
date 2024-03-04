@@ -116,8 +116,18 @@ parse_strwhile(char *s, char **rest, int (*pred)(int)) {
 }
 
 static int
+_tagname_pred(int ch) {
+	return ch == '-' || isalnum(ch);
+}
+
+static char *
+parse_tagname(char *s, char **rest) {
+	return parse_strwhile(s, rest, _tagname_pred);
+}
+
+static int
 _attrname_pred(int ch) {
-	return ch == '-' || ch == '_' || isalnum(ch);
+	return ch != '/' && ch != '>' && ch != '=' && !isspace(ch);
 }
 
 static char *
@@ -263,7 +273,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 		//return -1;
 		__builtin_trap();
 	eatsp(&s);
-	char *tagname = parse_attrname(s, rest);
+	char *tagname = parse_tagname(s, rest);
 	s = *rest;
 	if (!tagname)
 		//return -1;
@@ -313,7 +323,7 @@ parse_elt(char *s, char **rest, struct node *out) {
 				__builtin_trap();
 		} else { // attr value is unquoted
 			char *valstart = s;
-			while (*s && !isspace(*s) && *s != '/' && *s != '>')
+			while (*s && !isspace(*s) && *s != '>' && strncmp(s, "/>", 2))
 				s++;
 			size_t vlen = s - valstart;
 			char *buf = malloc(vlen + 1);
