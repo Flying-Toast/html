@@ -316,9 +316,18 @@ print_node(struct node *n, int nindent) {
 		printf("%s#Text \"%s\"\n", indentstr, n->text.content);
 	} else if (n->kind == NODE_ELT) {
 		printf("%s#%s\n", indentstr, n->elt.tagname);
-		struct nodelist *i;
-		for (i = n->elt.children; i != NULL; i = i->next) {
-			print_node(&i->node, nindent + 1);
+		struct attrlist *ai;
+		for (ai = n->elt.attrs; ai != NULL; ai = ai->next) {
+			printf(
+				"%s  %s=\"%s\"\n",
+				indentstr,
+				ai->attr.name,
+				ai->attr.val
+			);
+		}
+		struct nodelist *ni;
+		for (ni = n->elt.children; ni != NULL; ni = ni->next) {
+			print_node(&ni->node, nindent + 1);
 		}
 	} else if (n->kind == NODE_WHITESPACE) {
 		//printf("%s#Whitespace\n", indentstr);
