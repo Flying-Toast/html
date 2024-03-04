@@ -297,24 +297,36 @@ parse_elt(char *s, char **rest, struct node *out) {
 			// goto err_freeattrs;
 			__builtin_trap();
 		eatsp(&s);
-		if (!*s || (*s != '"' && *s != '\''))
+		if (!*s)
 			// goto err_freeattrs;
 			__builtin_trap();
-		char quot = *s++;
 
-		// TODO: escape-able '"' in attr value
-		char *valstart = s;
-		while (*s && *s != quot)
-			s++;
-		size_t vlen = s - valstart;
-		char *buf = malloc(vlen + 1);
-		buf[vlen] = '\0';
-		memcpy(buf, valstart, vlen);
-		new->attr.val = buf;
+		if (*s == '"' || *s == '\'') { // attr value is quoted
+			char quot = *s++;
 
-		if (!*s || *s++ != quot)
-			// goto err_freeattrs;
-			__builtin_trap();
+			// TODO: escape-able '"' in attr value
+			char *valstart = s;
+			while (*s && *s != quot)
+				s++;
+			size_t vlen = s - valstart;
+			char *buf = malloc(vlen + 1);
+			buf[vlen] = '\0';
+			memcpy(buf, valstart, vlen);
+			new->attr.val = buf;
+
+			if (!*s++)
+				// goto err_freeattrs;
+				__builtin_trap();
+		} else { // attr value is unquoted
+			char *valstart = s;
+			while (*s && !isspace(*s) && *s != '/' && *s != '>')
+				s++;
+			size_t vlen = s - valstart;
+			char *buf = malloc(vlen + 1);
+			buf[vlen] = '\0';
+			memcpy(buf, valstart, vlen);
+			new->attr.val = buf;
+		}
 		eatsp(&s);
 	}
 	int selfclose = is_selfclose(tagname);
