@@ -85,7 +85,7 @@ eatsp(char **s) {
 
 static int
 is_selfclose(char *tagname) {
-#define X(ARG) if (!strcmp(#ARG, tagname)) return 1;
+#define X(ARG) if (!strcasecmp(#ARG, tagname)) return 1;
 	ENUMERATE_SELFCLOSING_TAGS(X)
 #undef X
 	return 0;
