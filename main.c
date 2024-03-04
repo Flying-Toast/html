@@ -416,11 +416,20 @@ main(int argc, char **argv) {
 	char *buf = malloc(buflen);
 	buf[buflen - 1] = '\0';
 	read(f, buf, st.st_size);
+	char *nodestart = buf;
+	eatsp(&nodestart);
 	struct node *htmlnode = new_node();
 	char *rest;
-	if (parse_node(buf, &rest, htmlnode))
+	if (parse_node(nodestart, &rest, htmlnode))
 		//goto err;
 		__builtin_trap();
+	eatsp(&rest);
+	if (*rest != '\0')
+		fprintf(
+			stdout,
+			"OOPS: non-empty rest:\n%s\n==========\n",
+			rest
+		);
 	
 	print_node(htmlnode, 0);
 
