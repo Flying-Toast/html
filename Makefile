@@ -1,7 +1,7 @@
 CC=clang
 CFLAGS=-Wall -g -O0
 RM=rm -f
-OBJECTS=main.o
+OBJECTS=parse.o main.o walk.o
 
 .PHONY: run
 run: html
